@@ -28,6 +28,12 @@ You'll need a Supabase account (free tier works) to store the song requests, and
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
    Copy the output and paste it into `.env.local` as `SESSION_SECRET`
+5. (Optional) Set `GOOGLE_REVIEW_URL` to your pub's Google review link, to
+   show a "Rate us on Google" button after a guest sends a song. Get it from
+   Google Maps: find your pub, open **Reviews**, and copy the share link.
+   Leave it blank to hide the button.
+6. (Optional) Set `ADMIN_WINDOW_HOURS` to the number of hours back the admin
+   page should show. The default is 12. Leave it blank to show the last 12 hours.
 
 **Important:** `SUPABASE_SERVICE_ROLE_KEY` is a secret. Never share it, never commit `.env.local` to git, and never post it online.
 
@@ -64,7 +70,10 @@ simpler; the second redeploys automatically whenever you change the code.
    - `ADMIN_USER` (leave as `admin`)
    - `ADMIN_PASSWORD`
    - `SESSION_SECRET`
-5. Run `npx vercel --prod` once more so the new settings take effect.
+   - `GOOGLE_REVIEW_URL` (optional; leave blank to hide the button)
+   - `ADMIN_WINDOW_HOURS` (optional; default 12)
+5. Run `npx vercel --prod` once more so the new settings take effect. Do the
+   same again after changing any setting later.
 
 **Or: through GitHub, for automatic updates**
 

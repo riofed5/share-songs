@@ -24,3 +24,92 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Celebration thank-you panel */
+
+.celebration > * {
+  animation: celebration-rise 0.5s ease-out both;
+}
+
+.check-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background: #16a34a;
+  color: white;
+  animation: check-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.confetti-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -1rem;
+  width: 0.5rem;
+  height: 0.75rem;
+  background: #f59e0b;
+  animation: confetti-fall 900ms ease-in both;
+}
+
+.confetti-piece:nth-child(2n) {
+  background: #16a34a;
+}
+
+.confetti-piece:nth-child(3n) {
+  background: #3b82f6;
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes celebration-rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(6rem) rotate(var(--confetti-rotate, 20deg));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration > *,
+  .check-badge,
+  .confetti-piece {
+    animation: none !important;
+  }
+
+  .confetti-field {
+    display: none;
+  }
+}

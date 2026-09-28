@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminClient } from "@/lib/supabase/admin";
 import { SESSION_COOKIE, verifyToken } from "@/lib/session";
+import { env } from "@/lib/env";
 import { logout } from "./login/actions";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -53,9 +54,15 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
+  const hours = env.adminWindowHours();
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const since = new Date(now - hours * 60 * 60 * 1000).toISOString();
+
   const { data, error } = await adminClient()
     .from("song_requests")
     .select("id, song, came_from, created_at")
+    .gte("created_at", since)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -72,7 +79,7 @@ export default async function AdminPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Song requests</h1>
           <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-            Newest first. Refreshes on its own every 10 minutes.
+            Last {hours} {hours === 1 ? "hour" : "hours"}, newest first. Refreshes on its own every 10 minutes.
           </p>
         </div>
         <form action={logout}>
@@ -93,7 +100,7 @@ export default async function AdminPage() {
         </p>
       ) : requests.length === 0 ? (
         <p className="rounded-md border border-black/10 bg-black/[.02] px-4 py-8 text-center text-sm text-black/60 dark:border-white/10 dark:bg-white/[.03] dark:text-white/60">
-          Nothing yet — requests will show up here as people send them.
+          No requests in the last {hours} {hours === 1 ? "hour" : "hours"} — they will show up here as people send them.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
