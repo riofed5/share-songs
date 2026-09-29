@@ -1,6 +1,7 @@
 "use server";
 
 import { publicClient } from "@/lib/supabase/public";
+import { parseSongLink, songLinkMessage } from "@/lib/song-link";
 
 export type SubmitState = {
   status: "idle" | "success" | "error";
@@ -8,27 +9,62 @@ export type SubmitState = {
 };
 
 const MAX_SONG_LENGTH = 200;
+const MAX_PASTE_LENGTH = 2000;
 const MAX_CAME_FROM_LENGTH = 100;
+const RESOLVE_TIMEOUT_MS = 3000;
+
+/**
+ * Spotify's short share links only say which song they are once followed.
+ * Follow one to catch a playlist; if the lookup fails or lands somewhere
+ * unexpected, keep the short link rather than turn a guest away.
+ */
+async function resolveSpotifyShortLink(
+  shortUrl: string,
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const response = await fetch(shortUrl, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS),
+    });
+    await response.body?.cancel();
+    const landed = parseSongLink(response.url);
+    if (landed.ok && !landed.needsResolve) return { url: landed.url };
+    if (!landed.ok && landed.reason === "no-song" && landed.what !== "page") {
+      return { error: songLinkMessage(landed) };
+    }
+  } catch (error) {
+    console.warn(
+      "Could not look up a Spotify short link:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+  return { url: shortUrl };
+}
 
 export async function submitRequest(
   _prev: SubmitState,
   formData: FormData,
 ): Promise<SubmitState> {
-  const song = String(formData.get("song") ?? "").trim();
+  const pasted = String(formData.get("song") ?? "").slice(0, MAX_PASTE_LENGTH);
   const cameFromRaw = String(formData.get("cameFrom") ?? "").trim();
   const cameFrom = cameFromRaw === "" ? null : cameFromRaw;
 
-  if (song === "") {
-    return {
-      status: "error",
-      error: "Please tell us what song you would like to hear.",
-    };
+  const link = parseSongLink(pasted);
+  if (!link.ok) {
+    return { status: "error", error: songLinkMessage(link) };
+  }
+
+  let song = link.url;
+  if (link.needsResolve) {
+    const resolved = await resolveSpotifyShortLink(link.url);
+    if ("error" in resolved) return { status: "error", error: resolved.error };
+    song = resolved.url;
   }
 
   if (song.length > MAX_SONG_LENGTH) {
     return {
       status: "error",
-      error: `That song title is a bit long. Please keep it under ${MAX_SONG_LENGTH} characters.`,
+      error: "That link is too long. Copy the song's link from YouTube or Spotify and paste it here.",
     };
   }
 
