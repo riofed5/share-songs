@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { adminClient } from "@/lib/supabase/admin";
 import { SESSION_COOKIE, verifyToken } from "@/lib/session";
 import { env } from "@/lib/env";
+import { parseSongLink } from "@/lib/song-link";
 import { logout } from "./login/actions";
 import { AutoRefresh } from "./auto-refresh";
+import { CopyButton } from "./copy-button";
 
 export const metadata: Metadata = { title: "Song requests" };
 
@@ -15,6 +17,9 @@ export const metadata: Metadata = { title: "Song requests" };
 export const dynamic = "force-dynamic";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
+
+const ROW_BUTTON =
+  "flex h-11 shrink-0 items-center justify-center rounded-md border border-black/15 px-3 text-sm font-medium transition-colors hover:bg-black/5 active:bg-black/10 dark:border-white/20 dark:hover:bg-white/10 dark:active:bg-white/15";
 
 type SongRequestRow = {
   id: string;
@@ -104,18 +109,40 @@ export default async function AdminPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {requests.map((request) => (
-            <li
-              key={request.id}
-              className="rounded-md border border-black/15 px-4 py-3 dark:border-white/20"
-            >
-              <p className="font-medium">{request.song}</p>
-              <p className="mt-0.5 text-sm text-black/60 dark:text-white/60">
-                {request.came_from ? `From ${request.came_from} · ` : ""}
-                {formatRelativeTime(request.created_at)}
-              </p>
-            </li>
-          ))}
+          {requests.map((request) => {
+            // Requests from before links were required are plain song names.
+            const link = parseSongLink(request.song);
+            const url = link.ok ? link.url : null;
+            return (
+              <li
+                key={request.id}
+                className="flex items-center gap-2 rounded-md border border-black/15 px-4 py-3 dark:border-white/20"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className={url ? "break-all font-medium" : "font-medium"}>
+                    {url ? url.replace(/^https:\/\/(www\.)?/, "") : request.song}
+                  </p>
+                  <p className="mt-0.5 text-sm text-black/60 dark:text-white/60">
+                    {request.came_from ? `From ${request.came_from} · ` : ""}
+                    {formatRelativeTime(request.created_at)}
+                  </p>
+                </div>
+                {url ? (
+                  <>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={ROW_BUTTON}
+                    >
+                      Open
+                    </a>
+                    <CopyButton text={url} className={ROW_BUTTON} />
+                  </>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
     </main>

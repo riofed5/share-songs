@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { parseSongLink, songLinkMessage } from "@/lib/song-link";
 import { submitRequest, type SubmitState } from "./actions";
+import { SongLinkField } from "./song-link-field";
+import { Toast, useToast } from "./toast";
 
 const initial: SubmitState = { status: "idle", error: null };
 
@@ -15,7 +18,15 @@ const CONFETTI = [
 ];
 
 function SongForm({ googleReviewUrl }: { googleReviewUrl: string | null }) {
-  const [state, formAction, pending] = useActionState(submitRequest, initial);
+  const { toast, show, dismiss } = useToast();
+  const [state, formAction, pending] = useActionState(
+    async (previous: SubmitState, formData: FormData) => {
+      const next = await submitRequest(previous, formData);
+      if (next.status === "error" && next.error) show(next.error);
+      return next;
+    },
+    initial,
+  );
 
   if (state.status === "success") {
     return (
@@ -76,22 +87,23 @@ function SongForm({ googleReviewUrl }: { googleReviewUrl: string | null }) {
           Request a song
         </h1>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          Tell us what you would like to hear and we will add it to the list.
+          Found it on YouTube or Spotify? Drop the link here.
         </p>
       </div>
-      <form action={formAction} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">
-            What song would you like to hear?
-          </span>
-          <input
-            name="song"
-            required
-            maxLength={200}
-            autoComplete="off"
-            className="rounded-md border border-black/15 bg-white px-3 py-2 outline-none focus:border-black/40 dark:border-white/20 dark:bg-white/5"
-          />
-        </label>
+      <Toast toast={toast} onDismiss={dismiss} />
+      <form
+        action={formAction}
+        onSubmit={(event) => {
+          const song = new FormData(event.currentTarget).get("song");
+          const link = parseSongLink(String(song ?? ""));
+          if (!link.ok) {
+            event.preventDefault();
+            show(songLinkMessage(link));
+          }
+        }}
+        className="flex flex-col gap-4"
+      >
+        <SongLinkField onProblem={show} />
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">
@@ -104,12 +116,6 @@ function SongForm({ googleReviewUrl }: { googleReviewUrl: string | null }) {
             className="rounded-md border border-black/15 bg-white px-3 py-2 outline-none focus:border-black/40 dark:border-white/20 dark:bg-white/5"
           />
         </label>
-
-        {state.status === "error" && state.error ? (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {state.error}
-          </p>
-        ) : null}
 
         <button
           type="submit"
