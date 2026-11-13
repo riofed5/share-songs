@@ -1,7 +1,10 @@
 "use server";
 
+import { after } from "next/server";
+import { env } from "@/lib/env";
 import { publicClient } from "@/lib/supabase/public";
 import { parseSongLink, songLinkMessage } from "@/lib/song-link";
+import { notifySongRequest } from "@/lib/telegram";
 
 export type SubmitState = {
   status: "idle" | "success" | "error";
@@ -88,6 +91,13 @@ export async function submitRequest(
       status: "error",
       error: "Something went wrong sending your request. Please try again.",
     };
+  }
+
+  // Sent once the guest already has their thank-you, so a slow or broken
+  // Telegram never holds up or fails a request that is safely saved.
+  const telegram = env.telegram();
+  if (telegram) {
+    after(() => notifySongRequest(telegram, { song, cameFrom }));
   }
 
   return { status: "success", error: null };

@@ -34,8 +34,38 @@ You'll need a Supabase account (free tier works) to store the song requests, and
    Leave it blank to hide the button.
 6. (Optional) Set `ADMIN_WINDOW_HOURS` to the number of hours back the admin
    page should show. The default is 12. Leave it blank to show the last 12 hours.
+7. (Optional) Get a Telegram message every time a guest requests a song:
+   1. In Telegram, open a chat with **@BotFather**, send `/newbot`, and pick a
+      name and a username ending in `bot`. Paste the token it gives you into
+      `.env.local` as `TELEGRAM_BOT_TOKEN`.
+   2. Decide which chat should get the messages and let the bot in:
+      - Just you: open your new bot and press **Start**.
+      - A group: add the bot as a member, then send `/hello` in the group.
+      - A channel: add the bot as an administrator that may post, then post
+        anything in the channel.
+   3. In your browser, open
+      `https://api.telegram.org/bot<your token>/getUpdates` with your token in
+      place of `<your token>`. Find `"chat":{"id":` and paste the number after
+      it into `.env.local` as `TELEGRAM_CHAT_ID`. For a group or channel it
+      starts with a minus sign; keep it. If the page shows nothing, send
+      another message in the chat and reload.
 
-**Important:** `SUPABASE_SERVICE_ROLE_KEY` is a secret. Never share it, never commit `.env.local` to git, and never post it online.
+   To send the messages somewhere else later, change `TELEGRAM_CHAT_ID`. Leave
+   either setting blank to send no messages.
+8. (Optional) Get a daily Telegram summary of the songs requested. Every day
+   at 05:00 Vietnam time, the bot posts the list of requests from 05:00 the
+   day before until 05:00 that morning, to the same chat as above. It needs
+   the two Telegram settings, plus `CRON_SECRET`: generate another random
+   string the same way as `SESSION_SECRET` and paste it into `.env.local`.
+
+   The summary is sent by Vercel's scheduler, so it only runs on its own once
+   the app is online. To try it on your computer, start the app and run this
+   in a second terminal, with your `CRON_SECRET` in place of `<secret>`:
+   ```
+   curl -H "Authorization: Bearer <secret>" http://localhost:3000/api/cron/daily-summary
+   ```
+
+**Important:** `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN` and `CRON_SECRET` are secrets. Never share them, never commit `.env.local` to git, and never post it online.
 
 ## Run it on your computer
 
@@ -72,6 +102,9 @@ simpler; the second redeploys automatically whenever you change the code.
    - `SESSION_SECRET`
    - `GOOGLE_REVIEW_URL` (optional; leave blank to hide the button)
    - `ADMIN_WINDOW_HOURS` (optional; default 12)
+   - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (optional; leave blank for
+     no Telegram messages)
+   - `CRON_SECRET` (optional; leave blank for no daily summary)
 5. Run `npx vercel --prod` once more so the new settings take effect. Do the
    same again after changing any setting later.
 

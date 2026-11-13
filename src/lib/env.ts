@@ -33,6 +33,14 @@ export const env = {
   adminPassword: () => required("ADMIN_PASSWORD"),
   sessionSecret: () => required("SESSION_SECRET"),
   googleReviewUrl: () => optional("GOOGLE_REVIEW_URL"),
+  /** Where new requests are announced, or null unless both values are set. */
+  telegram: () => {
+    const botToken = optional("TELEGRAM_BOT_TOKEN");
+    const chatId = optional("TELEGRAM_CHAT_ID");
+    return botToken && chatId ? { botToken, chatId } : null;
+  },
+  /** Proves a daily-summary call comes from the scheduler. */
+  cronSecret: () => optional("CRON_SECRET"),
   adminWindowHours: () => {
     const value = optional("ADMIN_WINDOW_HOURS");
     const num = Number(value);
